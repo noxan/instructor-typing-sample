@@ -1,8 +1,8 @@
 import instructor
-from openai import Client
+from langfuse.openai import openai
 from pydantic import BaseModel
 
-client = instructor.from_openai(Client())
+client = instructor.from_openai(openai.Client())
 
 
 class SampleSchema(BaseModel):
