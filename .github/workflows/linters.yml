@@ -1,0 +1,62 @@
+name: Linters
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: ruff
+        uses: chartboost/ruff-action@v1
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check format with ruff
+        uses: chartboost/ruff-action@v1
+        with:
+          args: 'format --check'
+
+  pyright:
+    runs-on: ubuntu-latest
+    env:
+      POETRY_VIRTUALENVS_PREFER_ACTIVE_PYTHON: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Poetry
+        run: pipx install poetry
+      - name: Determine Python version with Poetry
+        run: echo "PYTHON_RUNTIME_VERSION=$(sed -n -e '/^\[metadata\]/,/^\[/p' poetry.lock | sed -n -e 's/^python-versions[[:space:]]*=[[:space:]]*//p' | tr -d \"'[:space:]'\')" >> $GITHUB_ENV
+      - name: Set up Python ${{ env.PYTHON_RUNTIME_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_RUNTIME_VERSION }}
+          cache: "poetry"
+      - name: Install dependencies
+        run: |
+          poetry install
+          echo "$(poetry env info --path)/bin" >> $GITHUB_PATH
+      - name: Pyright version detection
+        run: |
+          echo "PYRIGHT_VERSION=$(cat poetry.lock | grep 'pyright-' -m 1 | grep -o -E '[0-9]+\.[0-9]+\.[0-9]+')" >> $GITHUB_ENV
+          echo $PYRIGHT_VERSION
+      - name: pyright
+        uses: jakebailey/pyright-action@v2
+        with:
+          version: ${{ env.PYRIGHT_VERSION }}
