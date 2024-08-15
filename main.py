@@ -34,3 +34,22 @@ def wrapped_create(response_model: type[T] | None) -> T | str:
         return result.choices[0].message.content or ""
 
     return result
+
+
+class Metadata(BaseModel):
+    name: str
+    extra: str
+
+
+def wrapped_create2(response_model: type[T] | None, metadata: Metadata) -> T | str:
+    result = client.create(
+        messages=[],
+        model="gpt-3.5-turbo",
+        response_model=response_model,
+        name=metadata.name,
+        metadata=metadata,
+    )
+    if response_model is None:
+        return result.choices[0].message.content or ""
+
+    return result
